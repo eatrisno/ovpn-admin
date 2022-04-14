@@ -34,6 +34,16 @@ easyrsa gen-crl
 iptables -t nat -D POSTROUTING -s ${OVPN_SRV_NET}/${OVPN_SRV_MASK} ! -d ${OVPN_SRV_NET}/${OVPN_SRV_MASK} -j MASQUERADE || true
 iptables -t nat -A POSTROUTING -s ${OVPN_SRV_NET}/${OVPN_SRV_MASK} ! -d ${OVPN_SRV_NET}/${OVPN_SRV_MASK} -j MASQUERADE
 
+iptables -A FORWARD -i tun+ -o eth0 -s ${OVPN_SRV_NET}/${OVPN_SRV_MASK} -d 10.0.0.0/8,172.21.5.0/24 -j ACCEPT
+iptables -A FORWARD -i tun+ -o eth0 -s ${OVPN_SRV_NET}/${OVPN_SRV_MASK} -d 192.168.20.0/24,192.168.21.0/24,192.168.23.0/24 -j ACCEPT
+
+#special rule
+iptables -A FORWARD -i tun+ -o eth0 -s 100.0.3.252 -j ACCEPT #eko internet access
+iptables -A FORWARD -i tun+ -o eth0 -s 100.0.3.253 -j ACCEPT #eko internet access
+iptables -A FORWARD -i tun+ -o eth0 -s 100.0.3.254 -j ACCEPT #eko internet access
+
+iptables -A FORWARD -i tun+ -o eth0 -s ${OVPN_SRV_NET}/${OVPN_SRV_MASK} -d 0.0.0.0/0 -j DROP #block internet access
+
 mkdir -p /dev/net
 if [ ! -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
@@ -41,7 +51,7 @@ fi
 
 cp -f /etc/openvpn/setup/openvpn.conf /etc/openvpn/openvpn.conf
 
-if [ ${OVPN_PASSWD_AUTH} = "true" ]; then
+if [ "${OVPN_PASSWD_AUTH}" = "true" ]; then
   mkdir -p /etc/openvpn/scripts/
   cp -f /etc/openvpn/setup/auth.sh /etc/openvpn/scripts/auth.sh
   chmod +x /etc/openvpn/scripts/auth.sh
@@ -56,4 +66,4 @@ fi
 
 mkdir -p /etc/openvpn/ccd
 
-openvpn --config /etc/openvpn/openvpn.conf --client-config-dir /etc/openvpn/ccd --port 1194 --proto tcp --management 127.0.0.1 8989 --dev tun0 --server ${OVPN_SRV_NET} ${OVPN_SRV_MASK}
+openvpn  --config /etc/openvpn/openvpn.conf --client-config-dir /etc/openvpn/ccd --port 1194 --proto tcp --management 127.0.0.1 8989 --dev tun0 --server ${OVPN_SRV_NET} ${OVPN_SRV_MASK}
